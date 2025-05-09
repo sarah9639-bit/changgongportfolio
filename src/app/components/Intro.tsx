@@ -1,42 +1,12 @@
 'use client';
 
 import { motion, useInView } from 'framer-motion';
-import React, { useState, useEffect, Suspense, useRef, useMemo } from 'react';
+import React, { useState, Suspense, useRef } from 'react';
 import Image from 'next/image';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, MeshDistortMaterial } from '@react-three/drei';
 import * as THREE from 'three';
-
-interface TypewriterTextProps {
-  text: string;
-  delay?: number;
-}
-
-const TypewriterText = ({ text, delay = 0 }: TypewriterTextProps) => {
-  const [displayText, setDisplayText] = useState('');
-  
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    let currentIndex = 0;
-    
-    const typeNextCharacter = () => {
-      if (currentIndex <= text.length) {
-        setDisplayText(text.slice(0, currentIndex));
-        currentIndex++;
-        const speed = text.charAt(currentIndex - 1)?.match(/[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/) ? 70 : 50;
-        timeout = setTimeout(typeNextCharacter, speed);
-      }
-    };
-    
-    timeout = setTimeout(() => {
-      typeNextCharacter();
-    }, delay);
-    
-    return () => clearTimeout(timeout);
-  }, [text, delay]);
-  
-  return <span>{displayText}</span>;
-};
+ 
 
 function WaveAnimation() {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -49,14 +19,7 @@ function WaveAnimation() {
       setTime(state.clock.elapsedTime);
     }
   });
-
-  const uniforms = useMemo(
-    () => ({
-      u_time: { value: 0 },
-      u_intensity: { value: 0.3 },
-    }),
-    []
-  );
+ 
 
   const materialProps = {
     metalness: 0.2,
@@ -119,10 +82,7 @@ const Scene = () => {
 
 export default function Intro() {
   const containerRef = useRef(null);
-  const isInView = useInView(containerRef, {
-    margin: "-100px",
-    amount: 0.3
-  });
+  
 
   const textContainerRef = useRef(null);
   const isTextInView = useInView(textContainerRef, {
