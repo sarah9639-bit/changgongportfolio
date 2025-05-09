@@ -1,7 +1,6 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useInView } from 'framer-motion';
 import { useRef, useState, useEffect } from 'react';
 
 interface WorkCardProps {
