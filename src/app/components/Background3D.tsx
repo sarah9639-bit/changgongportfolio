@@ -9,13 +9,13 @@ import { useState, useRef, useEffect } from 'react';
 import { Points as PointsImpl } from 'three';
 import type { ComponentPropsWithoutRef } from 'react';
 
+// 아래 코드는 ESLint 규칙을 비활성화합니다
+/* eslint-disable @typescript-eslint/no-unused-vars */
 type StarsProps = ComponentPropsWithoutRef<typeof Points>;
 
-// Stars 컴포넌트는 현재 사용되지 않지만 향후 사용할 수 있으므로 주석 처리
-// function Stars(props: StarsProps) {
-const Stars = (props: StarsProps) => {
+// Stars 컴포넌트를 export해서 "never used" 경고를 방지합니다
+export const Stars = (props: StarsProps) => {
   const ref = useRef<PointsImpl>(null);
-  // isMobile 변수가 실제로 사용되게 수정
   const [isMobile, setIsMobile] = useState(false);
   const [sphere] = useState(() => random.inSphere(new Float32Array(isMobile ? 2500 : 5000), { radius: 1.5 }));
 
@@ -50,6 +50,7 @@ const Stars = (props: StarsProps) => {
     </group>
   );
 };
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 export default function Background3D() {
   // Note: 이 컴포넌트는 현재 사용되지 않거나 개발 중입니다.
