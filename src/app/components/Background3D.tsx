@@ -20,6 +20,9 @@ export const Stars = (props: StarsProps) => {
   const [sphere] = useState(() => random.inSphere(new Float32Array(isMobile ? 2500 : 5000), { radius: 1.5 }));
 
   useEffect(() => {
+    // 서버 환경에서는 window가 존재하지 않으므로 확인
+    if (typeof window === 'undefined') return;
+    
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };

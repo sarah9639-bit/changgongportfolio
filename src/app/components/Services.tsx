@@ -3,6 +3,38 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
+// 클라이언트 측에서만 IntersectionObserver 사용하도록 래퍼 함수 추가
+const useIntersectionObserver = (
+  callback: IntersectionObserverCallback,
+  options?: IntersectionObserverInit
+) => {
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    // 서버 사이드 렌더링 중에는 window 객체가 없음
+    if (typeof window === 'undefined' || !window.IntersectionObserver) return;
+
+    observer.current = new IntersectionObserver(callback, options);
+    
+    return () => {
+      observer.current?.disconnect();
+    };
+  }, [callback, options]);
+
+  // observe와 unobserve 함수 반환
+  const observe = useCallback((element: Element | null) => {
+    if (!element || !observer.current) return;
+    observer.current.observe(element);
+  }, []);
+
+  const unobserve = useCallback((element: Element | null) => {
+    if (!element || !observer.current) return;
+    observer.current.unobserve(element);
+  }, []);
+
+  return { observe, unobserve };
+};
+
 // 개별 카드 컴포넌트
 interface ServiceCardProps {
   title: string;
@@ -23,28 +55,32 @@ const ServiceCard = ({ title, description, icon, index }: ServiceCardProps) => {
     }
   }, [isVisible]);
 
-  // 최적화: useMemo를 사용하여 observer 인스턴스 메모이제이션
-  const observer = useMemo(() => new IntersectionObserver(
+  // IntersectionObserver 사용
+  const { observe, unobserve } = useIntersectionObserver(
     observerCallback,
     {
       root: null,
       rootMargin: '0px',
       threshold: 0.5, // 카드의 50% 이상이 보일 때만 애니메이션 시작
     }
-  ), [observerCallback]);
+  );
 
+  // IntersectionObserver를 useEffect 내에서 생성
   useEffect(() => {
+    // 서버 환경에서는 IntersectionObserver가 존재하지 않으므로 확인
+    if (typeof window === 'undefined' || !window.IntersectionObserver) return;
+    
     const currentRef = cardRef.current;
     if (currentRef) {
-      observer.observe(currentRef);
+      observe(currentRef);
     }
     
     return () => {
       if (currentRef) {
-        observer.unobserve(currentRef);
+        unobserve(currentRef);
       }
     };
-  }, [observer]);
+  }, [observe, unobserve]);
 
   // 애니메이션 지연 계산: 화면에 많은 카드가 동시에 애니메이션되지 않도록
   const animationDelay = useMemo(() => 0.15 * (index % 2), [index]);
@@ -75,36 +111,55 @@ const ServiceCard = ({ title, description, icon, index }: ServiceCardProps) => {
   );
 };
 
+// 로딩 컴포넌트 추가
+const LoadingFallback = () => (
+  <div className="w-full py-10 bg-[#020617] flex justify-center items-center">
+    <div className="text-white text-xl">업무분야 로딩 중...</div>
+  </div>
+);
+
 export default function Services() {
+  const [isClient, setIsClient] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [isTitleVisible, setIsTitleVisible] = useState(false);
 
+  // 클라이언트 사이드에서만 렌더링되도록 처리
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry.isIntersecting !== isTitleVisible) {
-          setIsTitleVisible(entry.isIntersecting);
-        }
-      },
-      {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.5,
-      }
-    );
+    setIsClient(true);
+  }, []);
+
+  const titleObserverCallback = useCallback((entries: IntersectionObserverEntry[]) => {
+    const [entry] = entries;
+    if (entry.isIntersecting !== isTitleVisible) {
+      setIsTitleVisible(entry.isIntersecting);
+    }
+  }, [isTitleVisible]);
+
+  // IntersectionObserver 사용
+  const { observe: observeTitle, unobserve: unobserveTitle } = useIntersectionObserver(
+    titleObserverCallback,
+    {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.5,
+    }
+  );
+
+  useEffect(() => {
+    // 서버 환경에서는 IntersectionObserver가 존재하지 않으므로 확인
+    if (typeof window === 'undefined' || !window.IntersectionObserver) return;
     
     const currentRef = titleRef.current;
     if (currentRef) {
-      observer.observe(currentRef);
+      observeTitle(currentRef);
     }
     
     return () => {
       if (currentRef) {
-        observer.unobserve(currentRef);
+        unobserveTitle(currentRef);
       }
     };
-  }, [isTitleVisible]);
+  }, [observeTitle, unobserveTitle]);
 
   // 최적화: 서비스 데이터를 useMemo로 메모이제이션
   const services = useMemo(() => [
@@ -139,6 +194,9 @@ export default function Services() {
       icon: '🔨'
     }
   ], []);
+
+  // 클라이언트 사이드가 아니면 로딩 컴포넌트 표시
+  if (!isClient) return <LoadingFallback />;
 
   return (
     <section

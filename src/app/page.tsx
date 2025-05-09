@@ -1,8 +1,9 @@
 import Intro from './components/Intro'
-import Services from './components/Services'
-import Contact from './components/Contact'
 import Navigation from './components/Navigation'
 import Background3D from './components/Background3D'
+import ClientServices from './components/ClientServices'
+import ClientWork from './components/ClientWork'
+import ClientContact from './components/ClientContact'
 
 export default function Home() {
   return (
@@ -12,9 +13,10 @@ export default function Home() {
         <Navigation />
         <Intro />
       </div>
-      <Services />
+      <ClientServices />
+      <ClientWork />
       <div className="relative">
-        <Contact />
+        <ClientContact />
       </div>
     </main>
   )

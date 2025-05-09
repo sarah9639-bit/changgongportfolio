@@ -1,7 +1,39 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
+
+// 클라이언트 측에서만 IntersectionObserver 사용하도록 래퍼 함수 추가
+const useIntersectionObserver = (
+  callback: IntersectionObserverCallback,
+  options?: IntersectionObserverInit
+) => {
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    // 서버 사이드 렌더링 중에는 window 객체가 없음
+    if (typeof window === 'undefined' || !window.IntersectionObserver) return;
+
+    observer.current = new IntersectionObserver(callback, options);
+    
+    return () => {
+      observer.current?.disconnect();
+    };
+  }, [callback, options]);
+
+  // observe와 unobserve 함수 반환
+  const observe = useCallback((element: Element | null) => {
+    if (!element || !observer.current) return;
+    observer.current.observe(element);
+  }, []);
+
+  const unobserve = useCallback((element: Element | null) => {
+    if (!element || !observer.current) return;
+    observer.current.unobserve(element);
+  }, []);
+
+  return { observe, unobserve };
+};
 
 interface WorkCardProps {
   title: string;
@@ -14,35 +46,42 @@ const WorkCard = ({ title, items, delay }: WorkCardProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const [key, setKey] = useState(0); // 애니메이션을 강제로 재시작하기 위한 키
   
+  const observerCallback = useCallback((entries: IntersectionObserverEntry[]) => {
+    const [entry] = entries;
+    // Update state when visibility changes
+    if (entry.isIntersecting) {
+      setIsVisible(true);
+      setKey(prev => prev + 1); // 요소가 화면에 들어올 때마다 키 변경
+    } else {
+      setIsVisible(false);
+    }
+  }, []);
+
+  // IntersectionObserver 사용
+  const { observe, unobserve } = useIntersectionObserver(
+    observerCallback,
+    {
+      root: null,
+      rootMargin: '-100px',
+      threshold: 0.3,
+    }
+  );
+  
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        // Update state when visibility changes
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          setKey(prev => prev + 1); // 요소가 화면에 들어올 때마다 키 변경
-        } else {
-          setIsVisible(false);
-        }
-      },
-      {
-        root: null,
-        rootMargin: '-100px',
-        threshold: 0.3,
-      }
-    );
+    // 서버 환경에서는 IntersectionObserver가 존재하지 않으므로 확인
+    if (typeof window === 'undefined' || !window.IntersectionObserver) return;
     
     const currentRef = ref.current;
     if (currentRef) {
-      observer.observe(currentRef);
+      observe(currentRef);
     }
     
     return () => {
       if (currentRef) {
-        observer.unobserve(currentRef);
+        unobserve(currentRef);
       }
     };
-  }, []);
+  }, [observe, unobserve]);
 
   return (
     <div ref={ref} className="relative">
@@ -73,7 +112,21 @@ const WorkCard = ({ title, items, delay }: WorkCardProps) => {
   );
 };
 
+// 로딩 컴포넌트 추가
+const LoadingFallback = () => (
+  <div className="w-full py-20 bg-[#020617] flex justify-center items-center">
+    <div className="text-white text-xl">업무분야 로딩 중...</div>
+  </div>
+);
+
 export default function Work() {
+  const [isClient, setIsClient] = useState(false);
+  
+  // 클라이언트 사이드에서만 렌더링되도록 처리
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
   const workAreas = [
     {
       title: '노무 컨설팅',
@@ -108,34 +161,44 @@ export default function Work() {
   const [isTitleVisible, setIsTitleVisible] = useState(false);
   const [titleKey, setTitleKey] = useState(0);
   
+  const titleObserverCallback = useCallback((entries: IntersectionObserverEntry[]) => {
+    const [entry] = entries;
+    if (entry.isIntersecting) {
+      setIsTitleVisible(true);
+      setTitleKey(prev => prev + 1);
+    } else {
+      setIsTitleVisible(false);
+    }
+  }, []);
+
+  // IntersectionObserver 사용
+  const { observe: observeTitle, unobserve: unobserveTitle } = useIntersectionObserver(
+    titleObserverCallback,
+    {
+      root: null,
+      rootMargin: '-100px',
+      threshold: 0.3,
+    }
+  );
+  
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsTitleVisible(true);
-          setTitleKey(prev => prev + 1);
-        } else {
-          setIsTitleVisible(false);
-        }
-      },
-      {
-        root: null,
-        rootMargin: '-100px',
-        threshold: 0.3,
-      }
-    );
+    // 서버 환경에서는 IntersectionObserver가 존재하지 않으므로 확인
+    if (typeof window === 'undefined' || !window.IntersectionObserver) return;
     
     const currentRef = titleRef.current;
     if (currentRef) {
-      observer.observe(currentRef);
+      observeTitle(currentRef);
     }
     
     return () => {
       if (currentRef) {
-        observer.unobserve(currentRef);
+        unobserveTitle(currentRef);
       }
     };
-  }, []);
+  }, [observeTitle, unobserveTitle]);
+
+  // 클라이언트 사이드가 아니면 로딩 컴포넌트 표시
+  if (!isClient) return <LoadingFallback />;
 
   return (
     <section id="work" className="py-20 bg-[#020617]">
