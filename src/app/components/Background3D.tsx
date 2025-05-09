@@ -3,15 +3,26 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Points, PointMaterial } from '@react-three/drei';
 import * as random from 'maath/random';
-import { useState, useRef, Suspense } from 'react';
-
+import { useState, useRef, Suspense, useEffect } from 'react';
 import { Points as PointsImpl } from 'three';
 import type { ComponentPropsWithoutRef } from 'react';
+
 type StarsProps = ComponentPropsWithoutRef<typeof Points>;
 
 function Stars(props: StarsProps) {
   const ref = useRef<PointsImpl>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [sphere] = useState(() => random.inSphere(new Float32Array(5000), { radius: 1.5 }));
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useFrame((state, delta) => {
     if (ref.current) {
@@ -36,13 +47,5 @@ function Stars(props: StarsProps) {
 }
 
 export default function Background3D() {
-  return (
-    <div className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none">
-      <Canvas camera={{ position: [0, 0, 1] }}>
-        <Suspense fallback={null}>
-          <Stars />
-        </Suspense>
-      </Canvas>
-    </div>
-  );
+  return null;
 } 

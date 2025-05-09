@@ -100,7 +100,7 @@ export default function Intro() {
     <section 
       ref={containerRef}
       id="intro" 
-      className="min-h-screen bg-[#020617] flex items-center relative overflow-hidden"
+      className="min-h-screen bg-[#020617] flex items-center relative overflow-hidden py-10"
     >
       <Scene />
       
@@ -223,22 +223,20 @@ export default function Intro() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={isImageInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
             transition={{ duration: 1, delay: 0.4 }}
-            className="relative hidden md:block w-[500px]"
+            className="relative hidden md:flex w-full max-w-[500px] aspect-[3/4]"
           >
-            <div className="relative w-full pb-[133%] rounded-2xl overflow-hidden shadow-2xl">
-              <Image
-                src="/images/profile.jpg"
-                alt="노예은 노무사 프로필"
-                fill
-                sizes="(max-width: 768px) 100vw, 500px"
-                className="object-cover rounded-2xl"
-                priority
-              />
-              <div 
-                className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent z-10" 
-                style={{ pointerEvents: 'none' }}
-              />
-            </div>
+            <Image
+              src="/images/profile.jpg"
+              alt="노예은 노무사 프로필"
+              fill
+              sizes="(max-width: 768px) 100vw, 500px"
+              className="object-cover rounded-2xl"
+              priority
+            />
+            <div 
+              className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-30 rounded-2xl" 
+              style={{ pointerEvents: 'none' }}
+            />
           </motion.div>
         </div>
       </div>
